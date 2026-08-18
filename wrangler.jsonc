@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "campus-parking-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "campus-parking",
+      "database_id": "6ab6f6c9-e41b-463b-b053-3972f49d7989"
+    }
+  ]
+}
