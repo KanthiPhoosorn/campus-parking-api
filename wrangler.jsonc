@@ -6,6 +6,11 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "AUTH_MODE": "demo",
+    "ENABLE_INSECURE_LAB_DEMO": "false"
+  },
   "d1_databases": [
     {
       "binding": "DB",
