@@ -204,3 +204,28 @@ this operation? → ALLOW / DENY.**
 - [x] An endpoint checks a role; lower-privileged user rejected
 - [x] Machine credential exists, has explicit scope, in-scope succeeds, out-of-scope fails, revocable
 - [x] No real secret committed; one BOLA attack attempted; regression test exists and passes
+
+---
+
+## Minimum Lab Completion Criteria — A4 evidence map
+
+| Group | Criterion | Status | Where the evidence is |
+|---|---|---|---|
+| Human Identity | Provider login works | **Partial** | Demo-mode provider simulation tested (Evidence 1). Real OIDC path (`hono/jwk`: signature + `iss` + `aud`) is implemented in `src/index.ts` but never exercised — no provider is configured. |
+| Human Identity | API identity mapping works | ✅ | Evidence 1 — `/api/me` maps `external_sub` → `users.id` + role for all three identities |
+| Authorisation | Ownership enforced | ✅ | Evidence 3 — Checkpoint 2, all 4 rows (200 / 404 / 200 / 401) + admin override |
+| Authorisation | Role rejection tested | ✅ | Evidence 4 — operator → `DELETE /api/admin/users/2` and `POST /api/admin/api-clients` both **403** |
+| Machine Identity | Scoped credentials | ✅ | Evidence 5 — `report-agent` declared `["read:zones"]` only |
+| Machine Identity | Credentials active | ✅ | Evidence 5 — in-scope `GET /machine/zones` → **200** while active |
+| Machine Identity | Hashed storage verified | ✅ | Evidence 5 — D1 row shows `key_hash=789b51d7…`; raw key returned once, never stored |
+| Machine Identity | Revocation tested | ✅ | Evidence 5 — after revoke, same key → **401** |
+| Validation | Zero secrets in Git | ✅ | Evidence 7 — grep for `wk_` keys and client secrets: none; `.dev.vars` git-ignored |
+| Validation | 1 BOLA attack documented | ✅ | Evidence 2 — Alice read Bob's `operator_note` via `1`→`2`, then enumerated zone 4 |
+| Validation | 1 Regression test passing | ✅ | Evidence 6 — 8 tests; PASS → deliberately broken → FAIL (2) → restored → PASS |
+
+**Score: 10 of 11 fully evidenced; 1 partial (real provider login).**
+
+**Final mental model check** — every sensitive operation reaches its Allow/Deny decision *on the
+server*: authentication in middleware, identity mapping in `getCurrentUser`, and role / ownership /
+scope in `src/authz.ts`. No decision is delegated to a client, and the write path ignores
+client-supplied `operator_user_id` entirely.
