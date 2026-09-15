@@ -1,0 +1,407 @@
+A5 evidence run 20260915T081341Z   worker=https://campus-parking-integration.kanthiphs.workers.dev   db=campus-parking-integration
+
+== 0. Mint a machine credential for the partner team (admin action, demo identity)
+======================================================================
+[2026-09-15T08:13:41.826Z] POST https://campus-parking-integration.kanthiphs.workers.dev/api/admin/api-clients
+HTTP 201  (0.211862s)
+  Content-Type: application/json
+  CF-RAY: a3b62c747f89f886-SIN
+{
+  "id": 1,
+  "name": "partner-team-20260915T081341Z",
+  "scopes": [
+    "partner:read",
+    "partner:write"
+  ],
+  "api_key": "wk_REDACTED",
+  "warning": "Store api_key now - only the SHA-256 hash is kept server-side."
+}
+  (raw key handed to partner out-of-band; server keeps only SHA-256 -> wk_Pgql...redacted)
+id | name | key_hash | scopes_json | created_at
+--------------------------------------------------------------------------------
+1 | partner-team-20260915T081341Z | 6409b95ed1ba… | ["partner:read","partner:write"] | 2026-09-15 08:13:42
+
+== 2. PROVIDER PROOF - partner calls OUR endpoint with its credential
+======================================================================
+[2026-09-15T08:13:44.384Z] GET https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 200  (0.341975s)
+  Content-Type: application/json
+  CF-RAY: a3b62c84e9d8c8a7-HKG
+{
+  "provider": "team11-campus-parking",
+  "served_at": "2026-09-15T08:13:45.192Z",
+  "zones": [
+    {
+      "id": 1,
+      "name": "Zone A - Main Gate",
+      "capacity": 120,
+      "free": 45,
+      "permit_type": "student",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 2,
+      "name": "Zone B - Library",
+      "capacity": 80,
+      "free": 0,
+      "permit_type": "staff",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 3,
+      "name": "Zone C - Dorm",
+      "capacity": 200,
+      "free": 133,
+      "permit_type": "student",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 4,
+      "name": "Zone D - Admin",
+      "capacity": 40,
+      "free": 12,
+      "permit_type": "visitor",
+      "updated_at": "2026-09-15 08:06:33"
+    }
+  ]
+}
+-- negative: no credential
+[2026-09-15T08:13:44.853Z] GET https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 401  (0.193988s)
+  Content-Type: application/json
+  CF-RAY: a3b62c87788dfe10-SIN
+{
+  "error": "Invalid machine credential"
+}
+-- internal request log (request_log)
+id | received_at | method | path | client_name | status | cf_ray | latency_ms
+--------------------------------------------------------------------------------
+2 | 2026-09-15T08:13:45.538Z | GET | /partner/zones | NULL | 401 | a3b62c87788dfe10 | 0
+1 | 2026-09-15T08:13:45.221Z | GET | /partner/zones | partner-team-20260915T081341Z | 200 | a3b62c84e9d8c8a7 | 83
+
+== 5. IDEMPOTENCY PROOF - same Idempotency-Key + same body, sent twice
+======================================================================
+Idempotency-Key: a5-20260915T081341Z-booking-42
+-- request 1
+[2026-09-15T08:13:53.681Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 201  (0.535036s)
+  Content-Type: application/json
+  Idempotent-Replayed: false
+  CF-RAY: a3b62cbf7a1c0721-HKG
+{
+  "created": true,
+  "zone": {
+    "id": 6,
+    "name": "Zone I-20260915T081341Z",
+    "capacity": 40,
+    "free": 40,
+    "permit_type": "visitor",
+    "updated_at": "2026-09-15 08:13:54"
+  }
+}
+-- request 2 (byte-identical)
+[2026-09-15T08:13:54.375Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 201  (0.449343s)
+  Content-Type: application/json
+  Idempotent-Replayed: true
+  CF-RAY: a3b62cc39ad484d3-HKG
+{
+  "created": true,
+  "zone": {
+    "id": 6,
+    "name": "Zone I-20260915T081341Z",
+    "capacity": 40,
+    "free": 40,
+    "permit_type": "visitor",
+    "updated_at": "2026-09-15 08:13:54"
+  }
+}
+-- request 3 (same key, DIFFERENT body) -> must be refused
+[2026-09-15T08:13:54.946Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 409  (0.240016s)
+  Content-Type: application/json
+  CF-RAY: a3b62cc68f70fdc3-SIN
+{
+  "error": "Idempotency-Key was already used with a different payload"
+}
+-- DB proof: exactly one zone row was created
+rows_created | name
+--------------------------------------------------------------------------------
+1 | Zone I-20260915T081341Z
+client_name | key | request_hash | response_status | created_at
+--------------------------------------------------------------------------------
+partner-team-20260915T081341Z | a5-20260915T081341Z-booking-42 | 94549e36ee2560fc… | 201 | 2026-09-15T08:13:54.582Z
+
+== 4. WEBHOOK SENDER - request 1 above triggered zone.created; outgoing payload + partner response
+======================================================================
+id | created_at | trigger_action | target_url | response_status | completed_at | error
+--------------------------------------------------------------------------------
+1 | 2026-09-15T08:13:54.732Z | zone.created | https://httpbin.org/post | 200 | 2026-09-15T08:13:55.825Z | NULL
+payload | signature | partner_response
+--------------------------------------------------------------------------------
+{"event":"zone.created","source":"team11-campus-parking","sent_at":"2026-09-15T08:13:54.674Z","data":{"id":6,"name":"Zone I-20260915T081341Z","capacity":40,"free":40,"permit_type":"visitor","updated_at":"2026-09-15 08:13:54"}} | t=1789460034,v1=948b84d1a545da4acd5e9105cb47abe06767f3f1daad926d6efac630dd347d12 | {
+  "args": {}, 
+  "data": "{\"event\":\"zone.created\",\"source\":\"team11-campus-parking\",\"sent_at\":\"2026-09-15T08:13:54.674Z\",\"data\":{\"id\":6,\"name\":\"Zone I-20260915T081341Z\",\"capacity\":40,\"free\":40,\"permit_type\":\"visitor\",\"updated_at\":\"2026-09-15 08:13:54\"}}", 
+  "files": {}, 
+  "form": {}, 
+  "headers": {
+    "Accept-Encoding": "gzip, br", 
+    "Cdn-Loop": "cloudflare; loops=1", 
+    "Cf-Ew-Via": "15", 
+    "Cf-Ray": "a3b62cc14bbfb23e-HKG", 
+    "Cf-Visitor": "{\"scheme\":\"https\"}", 
+    "Cf-Worker": "kanthiphs.workers.dev", 
+    "Content-Length": "226", 
+    "Content-Type": "application/json", 
+    "Host": "httpbin.org", 
+    "User-Agent": "team11-campus-parking-webhook/1.0", 
+    "X-Amzn-Trace-Id": "Root=1-6aa8fe43-620bcbe828b0acf44f0a33ea", 
+    "X-Webhook-Signature": "t=1789460034,v1=948b84d1a545da4acd5e9105cb47abe06767f3f1daad926d6efac630dd347d12"
+  },
+
+== 3. WEBHOOK RECEIVER - incoming payload, secret verification, stored log
+======================================================================
+-- a) correctly signed delivery (partner signs t.body with the shared secret)
+payload: {"event":"slot.reserved","source":"partner-team","data":{"reservation_id":"R-1001","zone_id":1,"plate":"กข 1234"}}
+X-Webhook-Signature: t=1789460048,v1=cdb0b7275d416150d3e9e23946ae631a132ab301a3ba71a3d9c268508ae3af2f
+[2026-09-15T08:14:08.115Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 200  (0.293567s)
+  Content-Type: application/json
+  CF-RAY: a3b62d1929d80721-HKG
+{
+  "accepted": true,
+  "inbox_id": 1,
+  "received_at": "2026-09-15T08:14:08.861Z",
+  "event": "slot.reserved"
+}
+-- b) forged delivery (wrong secret) -> rejected but still logged
+[2026-09-15T08:14:08.556Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 401  (0.218624s)
+  Content-Type: application/json
+  CF-RAY: a3b62d1b8d92fd8f-SIN
+{
+  "accepted": false,
+  "reason": "signature mismatch",
+  "inbox_id": 2
+}
+-- c) replayed delivery (signature from 10 minutes ago) -> rejected
+[2026-09-15T08:14:08.952Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 401  (0.358422s)
+  Content-Type: application/json
+  CF-RAY: a3b62d1ea86d84e8-HKG
+{
+  "accepted": false,
+  "reason": "timestamp outside 300s replay window",
+  "inbox_id": 3
+}
+-- stored log (webhook_inbox) - newest first
+id | received_at | event_type | signature_valid | reason | raw_body
+--------------------------------------------------------------------------------
+3 | 2026-09-15T08:14:09.755Z | slot.reserved | 0 | timestamp outside 300s replay window | {"event":"slot.reserved","source":"partner-team","data":{"re…
+2 | 2026-09-15T08:14:09.224Z | slot.reserved | 0 | signature mismatch | {"event":"slot.reserved","source":"partner-team","data":{"re…
+1 | 2026-09-15T08:14:08.861Z | slot.reserved | 1 | NULL | {"event":"slot.reserved","source":"partner-team","data":{"re…
+
+== 1. CONSUMER PROOF - we call the partner's URL
+======================================================================
+[2026-09-15T08:14:11.609Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (0.691238s)
+  Content-Type: application/json
+  CF-RAY: a3b62d2feae20425-HKG
+{
+  "degraded": false,
+  "source": "partner",
+  "partner_url": "https://jsonplaceholder.typicode.com/users?_limit=2",
+  "requested_at": "2026-09-15T08:14:12.473Z",
+  "latency_ms": 198,
+  "recovered": false,
+  "data": [
+    {
+      "id": 1,
+      "name": "Leanne Graham",
+      "username": "Bret",
+      "email": "Sincere@april.biz",
+      "address": {
+        "street": "Kulas Light",
+        "suite": "Apt. 556",
+        "city": "Gwenborough",
+        "zipcode": "92998-3874",
+        "geo": {
+          "lat": "-37.3159",
+          "lng": "81.1496"
+        }
+      },
+      "phone": "1-770-736-8031 x56442",
+      "website": "hildegard.org",
+      "company": {
+        "name": "Romaguera-Crona",
+        "catchPhrase": "Multi-layered client-server neural-net",
+        "bs": "harness real-time e-markets"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Ervin Howell",
+      "username": "Antonette",
+      "email": "Shanna@melissa.tv",
+      "address": {
+        "street": "Victor Plains",
+        "suite": "Suite 879",
+        "city": "Wisokyburgh",
+        "zipcode": "90566-7771",
+        "geo": {
+          "lat": "-43.9509",
+          "lng": "-34.4618"
+        }
+      },
+      "phone": "010-692-6593 x09125",
+      "website": "anastasia.net",
+      "company": {
+        "name": "Deckow-Crist",
+        "catchPhrase": "Proactive didactic contingency",
+        "bs": "synergize scalable supply-chains"
+      }
+    }
+  ]
+}
+id | at | partner_url | outcome | http_status | latency_ms | error
+--------------------------------------------------------------------------------
+1 | 2026-09-15T08:14:12.696Z | https://jsonplaceholder.typicode.com/users?_limit=2 | ok | 200 | 198 | NULL
+
+== 6. DEGRADATION PROOF - break the partner, observe fallback, restore, observe recovery
+======================================================================
+[2026-09-15T08:14:14.769Z] BREAKAGE: redeploying with PARTNER_BASE_URL pointed at a dead host
+  Deployed campus-parking-integration triggers (5.12 sec)
+  Current Version ID: a3ab447f-165a-46fd-b420-e4e06c505777
+-- consumer call while partner is unreachable -> fallback JSON
+[2026-09-15T08:14:35.833Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (0.314148s)
+  Content-Type: application/json
+  CF-RAY: a3b62dc66fa2ff7e-SIN
+{
+  "degraded": true,
+  "source": "cache",
+  "partner_url": "https://partner-is-down.invalid/users?_limit=2",
+  "requested_at": "2026-09-15T08:14:36.553Z",
+  "partner_error": "partner responded 530: error code: 1016",
+  "cache_fetched_at": "2026-09-15T08:14:12.473Z",
+  "data": [
+    {
+      "id": 1,
+      "name": "Leanne Graham",
+      "username": "Bret",
+      "email": "Sincere@april.biz",
+      "address": {
+        "street": "Kulas Light",
+        "suite": "Apt. 556",
+        "city": "Gwenborough",
+        "zipcode": "92998-3874",
+        "geo": {
+          "lat": "-37.3159",
+          "lng": "81.1496"
+        }
+      },
+      "phone": "1-770-736-8031 x56442",
+      "website": "hildegard.org",
+      "company": {
+        "name": "Romaguera-Crona",
+        "catchPhrase": "Multi-layered client-server neural-net",
+        "bs": "harness real-time e-markets"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Ervin Howell",
+      "username": "Antonette",
+      "email": "Shanna@melissa.tv",
+      "address": {
+        "street": "Victor Plains",
+        "suite": "Suite 879",
+        "city": "Wisokyburgh",
+        "zipcode": "90566-7771",
+        "geo": {
+          "lat": "-43.9509",
+          "lng": "-34.4618"
+        }
+      },
+      "phone": "010-692-6593 x09125",
+      "website": "anastasia.net",
+      "company": {
+        "name": "Deckow-Crist",
+        "catchPhrase": "Proactive didactic contingency",
+        "bs": "synergize scalable supply-chains"
+      }
+    }
+  ]
+}
+[2026-09-15T08:14:36.283Z] RECOVERY: redeploying with the real partner URL
+  Deployed campus-parking-integration triggers (5.00 sec)
+  Current Version ID: 7e9137ea-bb89-45bc-b73d-483a47cfa0f9
+-- first call after recovery -> recovered:true
+[2026-09-15T08:14:56.700Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (0.438773s)
+  Content-Type: application/json
+  CF-RAY: a3b62e49bc89fdc3-SIN
+{
+  "degraded": false,
+  "source": "partner",
+  "partner_url": "https://jsonplaceholder.typicode.com/users?_limit=2",
+  "requested_at": "2026-09-15T08:14:57.557Z",
+  "latency_ms": 38,
+  "recovered": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Leanne Graham",
+      "username": "Bret",
+      "email": "Sincere@april.biz",
+      "address": {
+        "street": "Kulas Light",
+        "suite": "Apt. 556",
+        "city": "Gwenborough",
+        "zipcode": "92998-3874",
+        "geo": {
+          "lat": "-37.3159",
+          "lng": "81.1496"
+        }
+      },
+      "phone": "1-770-736-8031 x56442",
+      "website": "hildegard.org",
+      "company": {
+        "name": "Romaguera-Crona",
+        "catchPhrase": "Multi-layered client-server neural-net",
+        "bs": "harness real-time e-markets"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Ervin Howell",
+      "username": "Antonette",
+      "email": "Shanna@melissa.tv",
+      "address": {
+        "street": "Victor Plains",
+        "suite": "Suite 879",
+        "city": "Wisokyburgh",
+        "zipcode": "90566-7771",
+        "geo": {
+          "lat": "-43.9509",
+          "lng": "-34.4618"
+        }
+      },
+      "phone": "010-692-6593 x09125",
+      "website": "anastasia.net",
+      "company": {
+        "name": "Deckow-Crist",
+        "catchPhrase": "Proactive didactic contingency",
+        "bs": "synergize scalable supply-chains"
+      }
+    }
+  ]
+}
+-- automatic recovery log (integration_log)
+id | at | outcome | http_status | latency_ms | error
+--------------------------------------------------------------------------------
+3 | 2026-09-15T08:14:57.608Z | recovered | 200 | 38 | NULL
+2 | 2026-09-15T08:14:36.602Z | degraded | NULL | 24 | partner responded 530: error code: 1016
+1 | 2026-09-15T08:14:12.696Z | ok | 200 | 198 | NULL
+
+run complete 2026-09-15T08:14:59.623Z

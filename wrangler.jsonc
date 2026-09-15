@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "campus-parking-api",
+  // Assignment 5 deployment. Deliberately a SEPARATE worker + D1 database from
+  // the graded Assignment 2 API (campus-parking-api / campus-parking), so the
+  // integration work can never disturb that submission's URL or data.
+  "name": "campus-parking-integration",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "observability": {
@@ -9,13 +12,24 @@
   "vars": {
     "ENVIRONMENT": "development",
     "AUTH_MODE": "demo",
-    "ENABLE_INSECURE_LAB_DEMO": "false"
+    "ENABLE_INSECURE_LAB_DEMO": "false",
+    // Partner integration - non-secret configuration. Until the partner team's
+    // URL is known these point at external public HTTP services as stand-ins.
+    // NOTE: they cannot point at our own *.workers.dev - Cloudflare refuses
+    // Worker-to-Worker fetches inside one account (error 1042). A partner team
+    // on their own account is fine.
+    "PARTNER_BASE_URL": "https://jsonplaceholder.typicode.com",
+    "PARTNER_ZONES_PATH": "/users?_limit=2",
+    "PARTNER_WEBHOOK_URL": "https://httpbin.org/post",
+    "PARTNER_SIMULATE_DOWN": "false"
   },
+  // Secrets (set with `wrangler secret put`, never committed):
+  //   PARTNER_API_KEY, INBOUND_WEBHOOK_SECRET, OUTBOUND_WEBHOOK_SECRET
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "campus-parking",
-      "database_id": "6ab6f6c9-e41b-463b-b053-3972f49d7989"
+      "database_name": "campus-parking-integration",
+      "database_id": "7335c765-967e-4b64-846b-49c396e28254"
     }
   ]
 }

@@ -1,0 +1,250 @@
+A5 evidence run 20260915T080931Z   worker=https://campus-parking-integration.kanthiphs.workers.dev   db=campus-parking-integration
+
+== 0. Mint a machine credential for the partner team (admin action, demo identity)
+======================================================================
+[2026-09-15T08:09:31.348Z] POST https://campus-parking-integration.kanthiphs.workers.dev/api/admin/api-clients
+HTTP 201  (0.258351s)
+  Content-Type: application/json
+  CF-RAY: a3b6265729ed81ae-SIN
+{
+  "id": 2,
+  "name": "partner-team-20260915T080931Z",
+  "scopes": [
+    "partner:read",
+    "partner:write"
+  ],
+  "api_key": "wk_REDACTED",
+  "warning": "Store api_key now - only the SHA-256 hash is kept server-side."
+}
+  (raw key handed to partner out-of-band; server keeps only SHA-256 -> wk_K9MN...redacted)
+id | name | key_hash | scopes_json | created_at
+--------------------------------------------------------------------------------
+2 | partner-team-20260915T080931Z | 46164c639a65… | ["partner:read","partner:write"] | 2026-09-15 08:09:32
+
+== 2. PROVIDER PROOF - partner calls OUR endpoint with its credential
+======================================================================
+[2026-09-15T08:09:34.484Z] GET https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 200  (0.232878s)
+  Content-Type: application/json
+  CF-RAY: a3b6266ab8a0411d-SIN
+{
+  "provider": "team11-campus-parking",
+  "served_at": "2026-09-15T08:09:35.200Z",
+  "zones": [
+    {
+      "id": 1,
+      "name": "Zone A - Main Gate",
+      "capacity": 120,
+      "free": 45,
+      "permit_type": "student",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 2,
+      "name": "Zone B - Library",
+      "capacity": 80,
+      "free": 0,
+      "permit_type": "staff",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 3,
+      "name": "Zone C - Dorm",
+      "capacity": 200,
+      "free": 133,
+      "permit_type": "student",
+      "updated_at": "2026-09-15 08:06:33"
+    },
+    {
+      "id": 4,
+      "name": "Zone D - Admin",
+      "capacity": 40,
+      "free": 12,
+      "permit_type": "visitor",
+      "updated_at": "2026-09-15 08:06:33"
+    }
+  ]
+}
+-- negative: no credential
+[2026-09-15T08:09:35.012Z] GET https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 401  (0.208243s)
+  Content-Type: application/json
+  CF-RAY: a3b6266e0e03ce16-SIN
+{
+  "error": "Invalid machine credential"
+}
+-- internal request log (request_log)
+id | received_at | method | path | client_name | status | cf_ray | latency_ms
+--------------------------------------------------------------------------------
+2 | 2026-09-15T08:09:35.737Z | GET | /partner/zones | NULL | 401 | a3b6266e0e03ce16 | 0
+1 | 2026-09-15T08:09:35.214Z | GET | /partner/zones | partner-team-20260915T080931Z | 200 | a3b6266ab8a0411d | 36
+
+== 5. IDEMPOTENCY PROOF - same Idempotency-Key + same body, sent twice
+======================================================================
+Idempotency-Key: a5-20260915T080931Z-booking-42
+-- request 1
+[2026-09-15T08:09:37.606Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 201  (0.583828s)
+  Content-Type: application/json
+  Idempotent-Replayed: false
+  CF-RAY: a3b6267efbac097a-HKG
+{
+  "created": true,
+  "zone": {
+    "id": 5,
+    "name": "Zone I-20260915T080931Z",
+    "capacity": 40,
+    "free": 40,
+    "permit_type": "visitor",
+    "updated_at": "2026-09-15 08:09:38"
+  }
+}
+-- request 2 (byte-identical)
+[2026-09-15T08:09:38.473Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 201  (0.247213s)
+  Content-Type: application/json
+  Idempotent-Replayed: true
+  CF-RAY: a3b62683be34efdf-SIN
+{
+  "created": true,
+  "zone": {
+    "id": 5,
+    "name": "Zone I-20260915T080931Z",
+    "capacity": 40,
+    "free": 40,
+    "permit_type": "visitor",
+    "updated_at": "2026-09-15 08:09:38"
+  }
+}
+-- request 3 (same key, DIFFERENT body) -> must be refused
+[2026-09-15T08:09:38.969Z] POST https://campus-parking-integration.kanthiphs.workers.dev/partner/zones
+HTTP 409  (0.695988s)
+  Content-Type: application/json
+  CF-RAY: a3b62687f92ee8bd-HKG
+{
+  "error": "Idempotency-Key was already used with a different payload"
+}
+-- DB proof: exactly one zone row was created
+rows_created | name
+--------------------------------------------------------------------------------
+1 | Zone I-20260915T080931Z
+client_name | key | request_hash | response_status | created_at
+--------------------------------------------------------------------------------
+partner-team-20260915T080931Z | a5-20260915T080931Z-booking-42 | 8f82837734bf84a7… | 201 | 2026-09-15T08:09:38.521Z
+
+== 4. WEBHOOK SENDER - request 1 above triggered zone.created; outgoing payload + partner response
+======================================================================
+id | created_at | trigger_action | target_url | response_status | completed_at | error
+--------------------------------------------------------------------------------
+1 | 2026-09-15T08:09:38.674Z | zone.created | https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner | 404 | 2026-09-15T08:09:38.711Z | NULL
+payload | signature | response_body
+--------------------------------------------------------------------------------
+{"event":"zone.created","source":"team11-campus-parking","sent_at":"2026-09-15T08:09:38.626Z","data":{"id":5,"name":"Zone I-20260915T080931Z","capacity":40,"free":40,"permit_type":"visitor","updated_at":"2026-09-15 08:09:38"}} | t=1789459778,v1=fa25ae7984887ba41817bb819f0c09cb5f733f66e81f7b6369f0160c7463abf1 | error code: 1042
+
+
+== 3. WEBHOOK RECEIVER - incoming payload, secret verification, stored log
+======================================================================
+-- a) correctly signed delivery (partner signs t.body with the shared secret)
+X-Webhook-Signature: t=1789459791,v1=27fdbe83d9cf267f56b266043e7023122737bcd34d86d604a8c510cf39bd72bd
+[2026-09-15T08:09:51.901Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 401  (0.327140s)
+  Content-Type: application/json
+  CF-RAY: a3b626d7fe638570-HKG
+{
+  "accepted": false,
+  "reason": "signature mismatch",
+  "inbox_id": 1
+}
+-- b) forged delivery (wrong secret) -> rejected but still logged
+[2026-09-15T08:09:52.387Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 401  (0.247071s)
+  Content-Type: application/json
+  CF-RAY: a3b626da88153f8d-SIN
+{
+  "accepted": false,
+  "reason": "signature mismatch",
+  "inbox_id": 2
+}
+-- c) replayed delivery (signature from 10 minutes ago) -> rejected
+[2026-09-15T08:09:52.826Z] POST https://campus-parking-integration.kanthiphs.workers.dev/webhooks/partner
+HTTP 401  (0.229609s)
+  Content-Type: application/json
+  CF-RAY: a3b626dd589687c9-SIN
+{
+  "accepted": false,
+  "reason": "timestamp outside 300s replay window",
+  "inbox_id": 3
+}
+-- stored log (webhook_inbox) - newest first; the zone.created row is our own loopback delivery
+id | received_at | event_type | signature_valid | reason | raw_body
+--------------------------------------------------------------------------------
+3 | 2026-09-15T08:09:53.532Z | slot.reserved | 0 | timestamp outside 300s replay window | {"event":"slot.reserved","source":"partner-team","data":{"re…
+2 | 2026-09-15T08:09:53.106Z | slot.reserved | 0 | signature mismatch | {"event":"slot.reserved","source":"partner-team","data":{"re…
+1 | 2026-09-15T08:09:52.680Z | slot.reserved | 0 | signature mismatch | {"event":"slot.reserved","source":"partner-team","data":{"re…
+
+== 1. CONSUMER PROOF - we call the partner's URL
+======================================================================
+[2026-09-15T08:09:55.367Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (0.256196s)
+  Content-Type: application/json
+  CF-RAY: a3b626ed1ba2ce4f-SIN
+{
+  "degraded": true,
+  "source": "none",
+  "partner_url": "https://campus-parking-api.kanthiphs.workers.dev/api/zones",
+  "requested_at": "2026-09-15T08:09:56.020Z",
+  "partner_error": "partner responded 404: error code: 1042\n",
+  "cache_fetched_at": null,
+  "data": null
+}
+id | at | partner_url | outcome | http_status | latency_ms | error
+--------------------------------------------------------------------------------
+1 | 2026-09-15T08:09:56.097Z | https://campus-parking-api.kanthiphs.workers.dev/api/zones | degraded | NULL | 56 | partner responded 404: error code: 1042
+
+
+== 6. DEGRADATION PROOF - break the partner, observe fallback, restore, observe recovery
+======================================================================
+[2026-09-15T08:09:58.022Z] BREAKAGE: redeploying with PARTNER_BASE_URL pointed at a dead host
+  Deployed campus-parking-integration triggers (5.07 sec)
+  Current Version ID: 4a2e5595-d180-4543-acf7-cf756b3464f0
+-- consumer call while partner is unreachable -> fallback JSON
+[2026-09-15T08:10:19.372Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (2.449494s)
+  Content-Type: application/json
+  CF-RAY: a3b627832cf6f93a-SIN
+{
+  "degraded": true,
+  "source": "none",
+  "partner_url": "https://partner-is-down.invalid/api/zones",
+  "requested_at": "2026-09-15T08:10:20.031Z",
+  "partner_error": "partner responded 530: error code: 1016",
+  "cache_fetched_at": null,
+  "data": null
+}
+[2026-09-15T08:10:21.954Z] RECOVERY: redeploying with the real partner URL
+  Deployed campus-parking-integration triggers (5.08 sec)
+  Current Version ID: a50d7aa1-b368-4d2b-8085-c292f1754ef7
+-- first call after recovery -> recovered:true
+[2026-09-15T08:10:43.000Z] GET https://campus-parking-integration.kanthiphs.workers.dev/integration/partner/zones
+HTTP 200  (0.265885s)
+  Content-Type: application/json
+  CF-RAY: a3b62816cd3bfcfe-SIN
+{
+  "degraded": true,
+  "source": "none",
+  "partner_url": "https://campus-parking-api.kanthiphs.workers.dev/api/zones",
+  "requested_at": "2026-09-15T08:10:43.657Z",
+  "partner_error": "partner responded 404: error code: 1042\n",
+  "cache_fetched_at": null,
+  "data": null
+}
+-- automatic recovery log (integration_log)
+id | at | outcome | http_status | latency_ms | error
+--------------------------------------------------------------------------------
+3 | 2026-09-15T08:10:43.739Z | degraded | NULL | 51 | partner responded 404: error code: 1042
+
+2 | 2026-09-15T08:10:22.294Z | degraded | NULL | 2241 | partner responded 530: error code: 1016
+1 | 2026-09-15T08:09:56.097Z | degraded | NULL | 56 | partner responded 404: error code: 1042
+
+
+run complete 2026-09-15T08:10:45.863Z
