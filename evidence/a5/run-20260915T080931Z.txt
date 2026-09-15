@@ -13,7 +13,7 @@ HTTP 201  (0.258351s)
     "partner:read",
     "partner:write"
   ],
-  "api_key": "wk_REDACTED",
+  "api_key": "wk_K9MN…REDACTED",
   "warning": "Store api_key now - only the SHA-256 hash is kept server-side."
 }
   (raw key handed to partner out-of-band; server keeps only SHA-256 -> wk_K9MN...redacted)

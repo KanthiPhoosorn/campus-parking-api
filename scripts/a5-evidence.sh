@@ -44,6 +44,8 @@ hr "0. Mint a machine credential for the partner team (admin action, demo identi
 req POST "$BASE/api/admin/api-clients" -H "Authorization: Bearer demo-admin" -H "Content-Type: application/json" \
   -d "{\"name\":\"partner-team-$RUN\",\"scopes\":[\"partner:read\",\"partner:write\"]}"
 KEY=${PARTNER_KEY:-$(python -c 'import json;print(json.load(open("evidence/a5/.body"))["api_key"])')}
+# never let the raw credential into the committed transcript
+sed -i -E 's/("api_key": ")wk_([A-Za-z0-9_-]{4})[A-Za-z0-9_-]+"/wk_…REDACTED"/' "$OUT/.body" 2>/dev/null || true
 echo "  (raw key handed to partner out-of-band; server keeps only SHA-256 -> ${KEY:0:7}...redacted)"
 sql "SELECT id, name, substr(key_hash,1,12)||'…' AS key_hash, scopes_json, created_at FROM api_clients ORDER BY id DESC LIMIT 1"
 
