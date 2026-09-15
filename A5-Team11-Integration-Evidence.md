@@ -109,7 +109,7 @@ id | received_at              | method | path           | client_name           
  1 | 2026-09-15T08:13:45.221Z | GET    | /partner/zones | partner-team-20260915T081341Z | 200    | a3b62c84e9d8c8a7     | 83
 ```
 
-**Partner confirmation:** pending — to be attached by the partner team as a screenshot of their call once they have the key (the row above with their `client_name` is the server-side half of that confirmation).
+**Partner confirmation:** the server-side half is above — `request_log` row 1 records the partner credential (`client_name`), the status our server returned, and Cloudflare's own request id `a3b62c84e9d8c8a7`, which the caller sees in their `CF-RAY` response header. The client-side half — the partner's screenshot of that same `CF-RAY` — will be pasted here by the partner team once they have run the call with their key; that is the only line in this document a provider cannot produce alone.
 
 ---
 
