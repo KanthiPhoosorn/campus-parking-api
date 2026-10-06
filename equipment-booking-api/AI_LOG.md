@@ -19,6 +19,7 @@
 | 9 | Pasted `{"error":"Route not found: GET /api"}` from opening the Base URL | Added an index response at `/` and `/api` and made a trailing slash work. Checked locally (still 28/28), then checked the deployed code through the Cloudflare connector | Replaced `src/index.ts`, redeployed, and re-ran the live evidence: **28/28** (second run in `evidence/v2-live-run.txt`) |
 | 10 | Uploaded the instructor's `quality_gate.md` + `curl_test_guide.md`: "Please check before you submit" | Ran the cURL guide with real curl (9/9). Reviewed against all 8 Quality Gate sections. Found 2 more issues (CORS without a browser client; misleading error when Content-Type is missing), fixed them, re-tested (28/28 + 9/9), and rewrote `QUALITY_GATE_REVIEW.md` in the required table format | I redeploy and run the cURL guide against the live URL on the lab PC |
 | 11 | Pasted the live cURL-guide run: 8/9, step 5 = 409 | Checked the live code (new version deployed) and the live D1 data. Found leftover booking 20 from an earlier unfinished run, which made step 5 correctly return 409. Deleted that one row, made the script carry on after a failed curl call and warn about leftovers, and reproduced the failure and the fix locally | I re-run the guide on the live URL for the final evidence |
+| 12 | Pasted the re-run: 9/9 plus the raw `curl -i` output | Checked that the live D1 database was clean afterwards (3 equipment, 0 bookings). Saved my output word for word as `evidence/curl-guide-live.txt` and updated the review | Final live evidence |
 
 ## Points where AI output was questioned rather than accepted
 
@@ -33,6 +34,7 @@ These checks were done in the session by running tests, not taken on trust:
 
 - [ ] Ran `npm run db:local && npm run dev`, then `node scripts/evidence.mjs http://localhost:8787/api`, and got 28/28 passing.
 - [x] Deployed with `npm run deploy` on the lab PC and ran the evidence script against the live URL: **28/28 passed**, twice: before and after the final index-route change (`evidence/v2-live-run.txt`).
+- [x] Ran the instructor's cURL guide (real `curl.exe`, via `scripts/curl-guide.mjs`) against the live URL on the final deploy: **9/9** (`evidence/curl-guide-live.txt`).
 - [ ] Ran several curl commands by hand (create, overlap → 409, bad dates → 400, delete → 204).
 - [ ] Read `src/index.ts` line by line and can explain:
   - [ ] why the overlap SQL is `start_at < ?end AND end_at > ?start`

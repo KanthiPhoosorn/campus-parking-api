@@ -13,8 +13,10 @@ This review follows the instructor's `quality_gate.md`. It was used twice: after
 | | v1 (before) | After review |
 |---|---|---|
 | Test cases passing | **22 / 28** locally ([`evidence/v1-before-quality-gate.txt`](evidence/v1-before-quality-gate.txt)) | **28 / 28** locally ([`evidence/v2-after-quality-gate.txt`](evidence/v2-after-quality-gate.txt)) **and live** ([`evidence/v2-live-run.txt`](evidence/v2-live-run.txt)) |
-| Instructor's cURL guide | — | **9 / 9** ([`evidence/curl-guide-local.txt`](evidence/curl-guide-local.txt); live: `evidence/curl-guide-live.txt`) |
+| Instructor's cURL guide | — | **9 / 9** locally ([`evidence/curl-guide-local.txt`](evidence/curl-guide-local.txt)) **and 9 / 9 live on the final deploy** ([`evidence/curl-guide-live.txt`](evidence/curl-guide-live.txt)) |
 | `tsc --noEmit` | 2 type errors | 0 errors |
+
+> **Which version each live run covers:** the two 28-case live runs (`v2-live-run.txt`) were on the deploys *before* findings 7–8. The booking logic hasn't changed since. The **final** deploy was checked live with the instructor's cURL guide (9/9), and the same final code passes all 28 cases locally.
 
 ## Quality Gate Review Record
 
@@ -26,10 +28,10 @@ This review follows the instructor's `quality_gate.md`. It was used twice: after
 | 4 | **Reliability** | Malformed JSON crashed into **500** | `onError` keeps `HTTPException` status → `400 {"error":"Request body is not valid JSON"}` | "Malformed JSON" 500 → 400 |
 | 5 | **Accuracy** | Unknown fields (`"id": 1`) silently accepted; `PATCH {}` returned 200 | `z.strictObject` + "at least one field" rule | "Unknown field" 201 → 400. "PATCH empty body" 200 → 400 |
 | 6 | **Reasoning** | Code didn't typecheck. Errors didn't name the field. The 400-vs-404 choice for an unknown `equipmentId` wasn't decided | Fixed types. Errors name each field. Chose **400** and wrote the reason in `API_CONTRACT.md` | `tsc` 2 errors → 0. "Status codes and why" table |
-| 7 | **Delivery Quality** | CORS (`Access-Control-Allow-Origin: *`) was enabled, but no browser client is used. The Quality Gate says to include CORS only when using one | Removed the CORS middleware | `evidence/curl-guide-local.txt` headers no longer contain `Access-Control-Allow-Origin` |
+| 7 | **Delivery Quality** | CORS (`Access-Control-Allow-Origin: *`) was enabled, but no browser client is used. The Quality Gate says to include CORS only when using one | Removed the CORS middleware | No `Access-Control-Allow-Origin` header in `evidence/curl-guide-local.txt` **or the live** `evidence/curl-guide-live.txt` |
 | 8 | **Accuracy** | A POST/PATCH sent **without** `Content-Type: application/json` reported every field as "is required" even though the body had them. That's misleading, and it's easy to hit with curl on Windows | Check the Content-Type first → `400 {"error":"Content-Type must be application/json"}` | See finding 8 below |
-| 9 | **Execution Value** | The submission hadn't yet been tested with the instructor's own cURL guide | Added `scripts/curl-guide.mjs`, which runs guide steps 1–9 with the real `curl` program and saves the raw `curl -i` output | 9/9 steps return the expected status (`evidence/curl-guide-*.txt`) |
-| 10 | **Reliability** | Re-running the cURL guide on the **live** API failed step 5 (**409**, expected 200). Diagnosis: step 2 showed booking 20, left in the guide's fixed slot (eq-1, 2026-10-20 12:00–14:00) by an earlier run that never reached step 9's delete. The API was **correct** to refuse the overlapping update | Deleted the leftover row (only that row) from live D1. The script now keeps going if one `curl` call fails (so step 9 always cleans up), and it warns when leftover data is in the guide's time window | Live run 1: 8/9 (excerpt below). Same failure reproduced locally (8/9 with a leftover → 9/9 after deleting it). Live rerun: `evidence/curl-guide-live.txt` |
+| 9 | **Execution Value** | The submission hadn't yet been tested with the instructor's own cURL guide | Added `scripts/curl-guide.mjs`, which runs guide steps 1–9 with the real `curl` program and saves the raw `curl -i` output | 9/9 steps return the expected status, locally and live (`evidence/curl-guide-*.txt`) |
+| 10 | **Reliability** | Re-running the cURL guide on the **live** API failed step 5 (**409**, expected 200). Diagnosis: step 2 showed booking 20, left in the guide's fixed slot (eq-1, 2026-10-20 12:00–14:00) by an earlier run that never reached step 9's delete. The API was **correct** to refuse the overlapping update | Deleted the leftover row (only that row) from live D1. The script now keeps going if one `curl` call fails (so step 9 always cleans up), and it warns when leftover data is in the guide's time window | Live run 1: 8/9 (excerpt below). Same failure reproduced locally (8/9 with a leftover → 9/9 after deleting it). **Live rerun: 9/9**, and step 2 lists `[]` (`evidence/curl-guide-live.txt`) |
 
 ## Details
 
@@ -98,7 +100,7 @@ Each finding is written as **what was found → how it was fixed → evidence**.
 
 - **Found:** every response carried `Access-Control-Allow-Origin: *`. Quality Gate section 7 says to include CORS configuration *only if I chose to use a browser-based client*, and this project is tested with curl and a Node script.
 - **Fixed:** removed `cors()`. curl and server-to-server calls don't use CORS, so nothing else changes.
-- **Evidence:** the raw headers in `evidence/curl-guide-local.txt` have no `Access-Control-Allow-Origin`, and all 28 cases still pass.
+- **Evidence:** the raw headers in `evidence/curl-guide-local.txt` **and in the live run** `evidence/curl-guide-live.txt` have no `Access-Control-Allow-Origin`, and all 28 cases still pass.
 
 ### 8. Accuracy: missing Content-Type gave a misleading error
 
@@ -114,7 +116,7 @@ Each finding is written as **what was found → how it was fixed → evidence**.
 
 - **Found:** the evidence so far came from a Node `fetch` script. The brief asks for testing with `curl` or another HTTP client, and the instructor supplied a specific cURL guide.
 - **Fixed:** `node scripts/curl-guide.mjs <BASE_URL>` runs guide steps 1–9 exactly as written (same payloads, `BOOKING_ID` taken from step 3, `/bookings/not-found` for 404) using the real `curl` binary. It works on Windows too, because it calls `curl.exe` directly and avoids PowerShell's quoting problems.
-- **Evidence:** 9/9 locally (`evidence/curl-guide-local.txt`). The live run is saved as `evidence/curl-guide-live.txt`.
+- **Evidence:** 9/9 locally (`evidence/curl-guide-local.txt`) and **9/9 live** on the final deploy (`evidence/curl-guide-live.txt`).
 
 ### 10. Reliability: the cURL guide failed on a re-run because of leftover test data
 
@@ -134,7 +136,7 @@ Each finding is written as **what was found → how it was fixed → evidence**.
 - **Evidence:**
   - Local reproduction: with a leftover booking, the run gives 8/9 plus the warning. After deleting it, 9/9.
   - Live database after cleanup: 0 bookings, 3 equipment.
-  - Live rerun: `evidence/curl-guide-live.txt`.
+  - Live rerun: **9/9**. Step 2 now returns `[]`, and step 5 returns 200 (`evidence/curl-guide-live.txt`).
 
 ## Quality Gate checklist: final pass
 
@@ -144,7 +146,7 @@ Each finding is written as **what was found → how it was fixed → evidence**.
 | 2. Reliability | ✅ Data persists in D1. Overlaps are blocked on create **and** update. `equipmentId` is checked. Invalid requests never give a 500 | Findings 2, 3, 4 |
 | 3. Course Context | ✅ TypeScript + Hono + D1 as specified. AI use is recorded | `AI_LOG.md` |
 | 4. Reasoning | ✅ 400/404/409 reasons, overlap formula, and assumptions are written down | `API_CONTRACT.md` |
-| 5. Execution Value | ✅ README run steps. All endpoints work. Tested with curl | Finding 9, `EVIDENCE.md` |
+| 5. Execution Value | ✅ README run steps. All endpoints work. Tested with the instructor's cURL guide (9/9 live) and 28 cases | Finding 9, `EVIDENCE.md`, `evidence/` |
 | 6. Accuracy | ✅ `startAt < endAt` enforced. Every error is `{ "error": "..." }`. Parameter binding everywhere | Findings 1, 5, 8 |
 | 7. Delivery Quality | ✅ README, contract, ERD, and evidence for 28 + 9 cases. No CORS without a browser client | Finding 7 |
 | 8. You Own It | ⬜ **Student to confirm:** can explain every route, rule, query, and result in my own words | `AI_LOG.md` checklist |

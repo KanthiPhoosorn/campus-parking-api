@@ -13,7 +13,7 @@ A REST API for reserving shared faculty equipment (projectors, cameras, meeting 
 | [`EVIDENCE.md`](EVIDENCE.md) | 28 test cases: request (curl), expected vs. actual status, response body. **28/28 pass live** ([`evidence/v2-live-run.txt`](evidence/v2-live-run.txt)) |
 | [`QUALITY_GATE_REVIEW.md`](QUALITY_GATE_REVIEW.md) | Findings → fixes → evidence |
 | [`AI_LOG.md`](AI_LOG.md) | AI prompts, what was used, what was verified |
-| `evidence/` | Raw test output: v1 before the Quality Gate (22/28), after it (28/28 local, 28/28 live), and the instructor's cURL guide (`curl-guide-*.txt`, 9/9) |
+| `evidence/` | Raw test output: v1 before the Quality Gate (22/28), after it (28/28 local, 28/28 live), and the instructor's cURL guide (`curl-guide-local.txt` 9/9, **`curl-guide-live.txt` 9/9 on the final deploy**) |
 
 ## Run locally
 
