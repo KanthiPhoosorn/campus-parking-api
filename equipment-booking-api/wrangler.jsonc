@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "equipment-booking-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "equipment-booking",
+      "database_id": "0e805c91-7cf3-4882-93b7-de7284c549a8"
+    }
+  ]
+}
