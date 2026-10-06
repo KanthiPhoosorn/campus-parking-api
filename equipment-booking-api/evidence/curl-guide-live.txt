@@ -1,0 +1,171 @@
+# cURL Quick Test Guide: raw curl -i output (Cloudflare's Report-To/Nel telemetry headers omitted; everything else verbatim)
+# Base URL: https://equipment-booking-api.kanthiphs.workers.dev/api
+# Run at: 2026-10-06T07:13:07.933Z
+# Result: 9/9 steps returned the expected status
+
+## 1. List equipment (expect 200) -> PASS
+
+$ curl -i -X GET "https://equipment-booking-api.kanthiphs.workers.dev/api/equipment"
+
+HTTP/1.1 200 OK
+Date: Tue, 06 Oct 2026 07:12:56 GMT
+Content-Type: application/json
+Content-Length: 180
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc50c8bc0984-HKG
+alt-svc: h3=":443"; ma=86400
+
+[{"id":"eq-1","name":"Projector A","location":"Building 1"},{"id":"eq-2","name":"Camera B","location":"Building 2"},{"id":"eq-3","name":"Meeting Room 301","location":"Building 3"}]
+
+## 2. List bookings (expect 200) -> PASS
+
+$ curl -i -X GET "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings"
+
+HTTP/1.1 200 OK
+Date: Tue, 06 Oct 2026 07:12:57 GMT
+Content-Type: application/json
+Content-Length: 2
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc5418d2ce63-SIN
+alt-svc: h3=":443"; ma=86400
+
+[]
+
+## 3. Create a booking (expect 201) -> PASS
+
+$ curl -i -X POST "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "equipmentId": "eq-1",
+    "borrowerName": "Somchai Jaidee",
+    "startAt": "2026-10-20T09:00:00.000Z",
+    "endAt": "2026-10-20T11:00:00.000Z",
+    "purpose": "Class presentation"
+  }'
+
+HTTP/1.1 201 Created
+Date: Tue, 06 Oct 2026 07:12:57 GMT
+Content-Type: application/json
+Content-Length: 243
+Connection: keep-alive
+Location: /api/bookings/22
+Server: cloudflare
+CF-RAY: a462dc567f6e1edc-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"id":22,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:12:57.420Z","updatedAt":"2026-10-06T07:12:57.420Z"}
+
+BOOKING_ID=22
+
+## 4. Get one booking (expect 200) -> PASS
+
+$ curl -i -X GET "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings/22"
+
+HTTP/1.1 200 OK
+Date: Tue, 06 Oct 2026 07:12:58 GMT
+Content-Type: application/json
+Content-Length: 243
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc59b85181a4-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"id":22,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:12:57.420Z","updatedAt":"2026-10-06T07:12:57.420Z"}
+
+## 5. Update a booking (expect 200) -> PASS
+
+$ curl -i -X PATCH "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings/22" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "equipmentId": "eq-1",
+    "borrowerName": "Somchai Jaidee",
+    "startAt": "2026-10-20T12:00:00.000Z",
+    "endAt": "2026-10-20T14:00:00.000Z",
+    "purpose": "Updated class presentation"
+  }'
+
+HTTP/1.1 200 OK
+Date: Tue, 06 Oct 2026 07:12:58 GMT
+Content-Type: application/json
+Content-Length: 251
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc5e2a48f902-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"id":22,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T12:00:00.000Z","endAt":"2026-10-20T14:00:00.000Z","purpose":"Updated class presentation","createdAt":"2026-10-06T07:12:57.420Z","updatedAt":"2026-10-06T07:12:58.706Z"}
+
+## 6. Invalid time range (expect 400) -> PASS
+
+$ curl -i -X POST "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "equipmentId": "eq-1",
+    "borrowerName": "Somchai Jaidee",
+    "startAt": "2026-10-21T11:00:00.000Z",
+    "endAt": "2026-10-21T09:00:00.000Z",
+    "purpose": "Invalid time range test"
+  }'
+
+HTTP/1.1 400 Bad Request
+Date: Tue, 06 Oct 2026 07:13:06 GMT
+Content-Type: application/json
+Content-Length: 40
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc8f288a3947-HKG
+alt-svc: h3=":443"; ma=86400
+
+{"error":"startAt must be before endAt"}
+
+## 7. Overlapping booking (expect 409) -> PASS
+
+$ curl -i -X POST "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "equipmentId": "eq-1",
+    "borrowerName": "Suda Dee",
+    "startAt": "2026-10-20T12:30:00.000Z",
+    "endAt": "2026-10-20T13:30:00.000Z",
+    "purpose": "Conflict test"
+  }'
+
+HTTP/1.1 409 Conflict
+Date: Tue, 06 Oct 2026 07:13:06 GMT
+Content-Type: application/json
+Content-Length: 68
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc91b9255dd8-HKG
+alt-svc: h3=":443"; ma=86400
+
+{"error":"This equipment is already booked for an overlapping time"}
+
+## 8. Missing booking (expect 404) -> PASS
+
+$ curl -i -X GET "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings/not-found"
+
+HTTP/1.1 404 Not Found
+Date: Tue, 06 Oct 2026 07:13:07 GMT
+Content-Type: application/json
+Content-Length: 29
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc943ab2d865-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"error":"Booking not found"}
+
+## 9. Delete a booking (expect 204) -> PASS
+
+$ curl -i -X DELETE "https://equipment-booking-api.kanthiphs.workers.dev/api/bookings/22"
+
+HTTP/1.1 204 No Content
+Date: Tue, 06 Oct 2026 07:13:07 GMT
+Connection: keep-alive
+Server: cloudflare
+CF-RAY: a462dc978ad1735e-NRT
+alt-svc: h3=":443"; ma=86400
+

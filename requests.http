@@ -1,0 +1,77 @@
+# Click "Send Request" above each block (VS Code REST Client extension).
+@base = http://localhost:8787/api/zones
+
+### ✅ List (with filters)
+GET {{base}}?permit_type=student&available=true&limit=10
+
+### ✅ Get one
+GET {{base}}/1
+
+### ✅ Create -> 201
+POST {{base}}
+Content-Type: application/json
+
+{ "name": "Zone E - Sports Hall", "capacity": 60, "free": 20, "permit_type": "visitor" }
+
+### ✅ Partial update -> 200
+PATCH {{base}}/1
+Content-Type: application/json
+
+{ "free": 44 }
+
+### ✅ Delete -> 200
+DELETE {{base}}/4
+
+### ❌ 400 validation (missing + wrong types)
+POST {{base}}
+Content-Type: application/json
+
+{ "name": "", "capacity": "ten" }
+
+### ❌ 400 malformed JSON
+POST {{base}}
+Content-Type: application/json
+
+{ "name": oops
+
+### ❌ 400 unknown field (mass assignment)
+POST {{base}}
+Content-Type: application/json
+
+{ "name": "Zone X", "capacity": 5, "free": 1, "id": 999 }
+
+### ❌ 400 bad id
+GET {{base}}/abc
+
+### ❌ 404 not found
+GET {{base}}/999999
+
+### ❌ 405 method not allowed
+PUT {{base}}/1
+Content-Type: application/json
+
+{}
+
+### ❌ 409 duplicate name
+POST {{base}}
+Content-Type: application/json
+
+{ "name": "zone a - main gate", "capacity": 5, "free": 1 }
+
+### ❌ 415 wrong content type
+POST {{base}}
+Content-Type: text/plain
+
+hello
+
+### ❌ 422 business rule (free > capacity)
+PATCH {{base}}/1
+Content-Type: application/json
+
+{ "free": 9999 }
+
+### 🔒 SQL injection attempt is stored as plain text
+POST {{base}}
+Content-Type: application/json
+
+{ "name": "x'); DROP TABLE zones;--", "capacity": 1, "free": 0 }
