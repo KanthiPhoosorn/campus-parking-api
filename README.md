@@ -46,6 +46,7 @@ npm run dev             # http://localhost:8787
 
 ```bash
 npm test                # 39 success + error tests against http://localhost:8787 (server must be running)
+npm run test:remote     # same tests against the deployed Worker + remote D1
 npm run typecheck
 npm run tester          # browser tester at http://localhost:5500 (exercises CORS)
 ```
@@ -58,6 +59,6 @@ Exam study notes: [`PREP.md`](PREP.md).
 ```bash
 npx wrangler login      # one-time browser auth
 npx wrangler d1 create campus-parking   # paste database_id into wrangler.jsonc
-npm run db:remote       # seed the production D1
+npm run db:remote       # apply schema.sql to the production D1 (DROPS + reseeds zones)
 npm run deploy
 ```

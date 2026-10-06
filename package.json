@@ -9,6 +9,7 @@
     "db:local": "wrangler d1 execute campus-parking --local --file=schema.sql",
     "db:remote": "wrangler d1 execute campus-parking --remote --file=schema.sql",
     "test": "node --test test/*.test.mjs",
+    "test:remote": "BASE_URL=https://campus-parking-api.kanthiphs.workers.dev node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "tester": "python3 -m http.server 5500 --directory tester"
   },
