@@ -17,12 +17,14 @@
 | 7 | Pasted my live test output (28/28) | Checked the Cloudflare D1 database directly (3 equipment, 6 test bookings created and cleaned up). Saved my output as `evidence/v2-live-run.txt` and linked it in the docs | Live evidence is part of the submission |
 | 8 | "Before you submit you do it" | Updated the evidence links and this log | — |
 
-## AI suggestions I checked critically
+## Points where AI output was questioned rather than accepted
 
-- **400 vs 404 for an unknown `equipmentId`:** this could go either way. I kept **400** because the URL is valid and the body value is wrong. The reason is in `API_CONTRACT.md`.
-- **The race-condition claim:** the test passed on v1 too, because local D1 handles requests one at a time. I recorded that honestly instead of claiming the test proved the bug.
-- **Overlap formula** `existing.start < new.end AND existing.end > new.start`: I checked it by hand with back-to-back times (11:00–12:00 after 09:00–11:00, not an overlap) and with a booking inside another one (overlap).
-- **Times stored as strings:** this is only safe because every time is normalised to the same UTC format first. Finding #1 is exactly the bug that happens without that step.
+These checks were done in the session by running tests, not taken on trust:
+
+- **400 vs 404 for an unknown `equipmentId`:** this could go either way. **400** was chosen because the URL is valid and the body value is wrong. The reason is in `API_CONTRACT.md`.
+- **The race-condition claim:** the concurrency test passed on v1 too, because local D1 handles requests one at a time. That is recorded honestly instead of claiming the test proved the bug.
+- **Overlap formula** `existing.start < new.end AND existing.end > new.start`: tested with back-to-back times (allowed, case 8), a booking inside another one (409, case 10), and the same time on other equipment (allowed, case 9).
+- **Times stored as strings:** this is only safe because every time is normalised to the same UTC format first. Finding #1 is exactly the bug that happened in v1 without that step.
 
 ## What I verified myself
 
