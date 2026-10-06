@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zones API Tester</title>
+<style>
+  :root { --bg:#f7f7f8; --fg:#1b1b1f; --card:#fff; --line:#d9d9de; --ok:#1a7f37; --bad:#c62828; --accent:#2f5bd3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#151518; --fg:#e8e8ec; --card:#1f1f24; --line:#34343b; --ok:#4cc26b; --bad:#ff6b6b; --accent:#7f9dff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:900px; margin:0 auto; display:grid; gap:12px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  h1 { font-size:18px; margin:0; } h2 { font-size:14px; margin:0 0 8px; }
+  label { display:inline-flex; flex-direction:column; gap:2px; margin:0 8px 8px 0; font-size:12px; }
+  input, select, button { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); }
+  input { min-width:0; width:100%; } button { cursor:pointer; background:var(--accent); color:#fff; border:0; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+  pre { margin:0; padding:10px; border-radius:6px; background:var(--bg); overflow:auto; max-height:420px; white-space:pre-wrap; word-break:break-word; }
+  .status { font-weight:600; } .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Campus Parking Zones — API Tester</h1>
+
+  <section>
+    <h2>Base URL</h2>
+    <input id="base" value="http://localhost:8787">
+    <p style="margin:6px 0 0;font-size:12px">This page's origin: <code id="origin"></code>. It must be listed in <code>CORS_ORIGINS</code>.</p>
+  </section>
+
+  <section>
+    <h2>List / Get / Delete</h2>
+    <div class="row">
+      <label>permit_type<select id="f_permit"><option value="">any</option><option>student</option><option>staff</option><option>visitor</option></select></label>
+      <label>available<select id="f_avail"><option value="">any</option><option>true</option><option>false</option></select></label>
+      <label>limit<input id="f_limit" placeholder="50" size="4"></label>
+      <button id="btnList">GET list</button>
+    </div>
+    <div class="row">
+      <label>id<input id="id" placeholder="1" size="6"></label>
+      <button id="btnGet">GET one</button>
+      <button id="btnDelete">DELETE</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Create / Update (JSON body)</h2>
+    <textarea id="body" rows="6" style="width:100%;font:13px ui-monospace,monospace;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">{
+  "name": "Zone E - Sports Hall",
+  "capacity": 60,
+  "free": 20,
+  "permit_type": "visitor"
+}</textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="btnCreate">POST create</button>
+      <button id="btnPatch">PATCH id above</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Response <span id="status" class="status"></span></h2>
+    <pre id="out">—</pre>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id)
+  $('origin').textContent = location.origin
+  const api = () => $('base').value.replace(/\/+$/, '') + '/api/zones'
+
+  async function send(method, url, body) {
+    $('status').textContent = '…'; $('status').className = 'status'
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+        body,
+      })
+      const text = await res.text()
+      let shown = text
+      try { shown = JSON.stringify(JSON.parse(text), null, 2) } catch {}
+      $('status').textContent = `${res.status} ${res.statusText}`
+      $('status').className = 'status ' + (res.ok ? 'ok' : 'bad')
+      $('out').textContent = shown
+    } catch (err) {
+      // A CORS block or a server that is down both land here (the browser hides the details)
+      $('status').textContent = 'Network / CORS error'
+      $('status').className = 'status bad'
+      $('out').textContent = String(err) + '\n\nCheck: server running? Base URL right? Is this origin in CORS_ORIGINS? (See DevTools console.)'
+    }
+  }
+
+  $('btnList').onclick = () => {
+    const p = new URLSearchParams()
+    if ($('f_permit').value) p.set('permit_type', $('f_permit').value)
+    if ($('f_avail').value) p.set('available', $('f_avail').value)
+    if ($('f_limit').value) p.set('limit', $('f_limit').value)
+    send('GET', api() + (p.size ? '?' + p : ''))
+  }
+  $('btnGet').onclick = () => send('GET', `${api()}/${encodeURIComponent($('id').value)}`)
+  $('btnDelete').onclick = () => send('DELETE', `${api()}/${encodeURIComponent($('id').value)}`)
+  $('btnCreate').onclick = () => send('POST', api(), $('body').value)
+  $('btnPatch').onclick = () => send('PATCH', `${api()}/${encodeURIComponent($('id').value)}`, $('body').value)
+</script>
+</body>
+</html>

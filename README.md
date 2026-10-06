@@ -13,10 +13,10 @@ A small REST API that tracks live **parking-zone availability** on campus, built
 | Field | Type | Notes |
 |---|---|---|
 | `id` | integer | auto |
-| `name` | text | e.g. `Zone A - Main Gate` |
+| `name` | text | e.g. `Zone A - Main Gate`, unique (case-insensitive) |
 | `capacity` | integer | `>= 0` |
 | `free` | integer | `>= 0` and `<= capacity` (enforced in app **and** DB) |
-| `permit_type` | text | `student` \| `staff` \| `visitor` |
+| `permit_type` | text | `student` \| `staff` \| `visitor` (enforced in app **and** DB) |
 | `created_at` / `updated_at` | text | timestamps |
 
 ## Endpoints
@@ -24,12 +24,15 @@ A small REST API that tracks live **parking-zone availability** on campus, built
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/zones` | Create |
-| `GET` | `/api/zones` | Read all |
+| `GET` | `/api/zones` | Read all — filters: `permit_type`, `available=true\|false`, `q`, `limit` (1–100), `offset` |
 | `GET` | `/api/zones/:id` | Read one |
 | `PATCH` | `/api/zones/:id` | Update (partial) |
 | `DELETE` | `/api/zones/:id` | Delete |
 
-Status codes: `200/201` ok · `400` bad input · `404` not found · `422` `free > capacity`.
+Status codes: `200/201` ok · `400` bad input / malformed JSON / unknown field · `404` not found ·
+`405` wrong method · `409` duplicate name · `413` body > 10 KB · `415` not JSON · `422` `free > capacity`.
+
+CORS: browser origins must be listed in `CORS_ORIGINS` (`wrangler.jsonc` → `vars`).
 
 ## Run locally
 
@@ -38,6 +41,17 @@ npm install
 npm run db:local        # apply schema.sql to local D1
 npm run dev             # http://localhost:8787
 ```
+
+## Test
+
+```bash
+npm test                # 39 success + error tests against http://localhost:8787 (server must be running)
+npm run typecheck
+npm run tester          # browser tester at http://localhost:5500 (exercises CORS)
+```
+
+`requests.http` has a ready request for every status code (VS Code REST Client).
+Exam study notes: [`PREP.md`](PREP.md).
 
 ## Deploy
 
