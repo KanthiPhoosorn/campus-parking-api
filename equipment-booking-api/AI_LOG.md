@@ -18,6 +18,7 @@
 | 8 | "Before you submit you do it" | Updated the evidence links and this log | — |
 | 9 | Pasted `{"error":"Route not found: GET /api"}` from opening the Base URL | Added an index response at `/` and `/api` and made a trailing slash work. Checked locally (still 28/28), then checked the deployed code through the Cloudflare connector | Replaced `src/index.ts`, redeployed, and re-ran the live evidence: **28/28** (second run in `evidence/v2-live-run.txt`) |
 | 10 | Uploaded the instructor's `quality_gate.md` + `curl_test_guide.md`: "Please check before you submit" | Ran the cURL guide with real curl (9/9). Reviewed against all 8 Quality Gate sections. Found 2 more issues (CORS without a browser client; misleading error when Content-Type is missing), fixed them, re-tested (28/28 + 9/9), and rewrote `QUALITY_GATE_REVIEW.md` in the required table format | I redeploy and run the cURL guide against the live URL on the lab PC |
+| 11 | Pasted the live cURL-guide run: 8/9, step 5 = 409 | Checked the live code (new version deployed) and the live D1 data. Found leftover booking 20 from an earlier unfinished run, which made step 5 correctly return 409. Deleted that one row, made the script carry on after a failed curl call and warn about leftovers, and reproduced the failure and the fix locally | I re-run the guide on the live URL for the final evidence |
 
 ## Points where AI output was questioned rather than accepted
 

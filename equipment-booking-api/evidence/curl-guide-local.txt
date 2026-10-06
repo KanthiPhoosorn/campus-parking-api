@@ -1,6 +1,6 @@
-# cURL Quick Test Guide: raw curl -i output
+# cURL Quick Test Guide: raw curl -i output (Cloudflare's Report-To/Nel telemetry headers omitted; everything else verbatim)
 # Base URL: http://localhost:8787/api
-# Run at: 2026-10-06T07:00:24.163Z
+# Run at: 2026-10-06T07:11:37.845Z
 # Result: 9/9 steps returned the expected status
 
 ## 1. List equipment (expect 200) -> PASS
@@ -37,26 +37,26 @@ $ curl -i -X POST "http://localhost:8787/api/bookings" \
 
 HTTP/1.1 201 Created
 Content-Length: 243
-Location: /api/bookings/60
+Location: /api/bookings/63
 Content-Type: application/json
 
-{"id":60,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:00:24.060Z","updatedAt":"2026-10-06T07:00:24.060Z"}
+{"id":63,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:11:37.742Z","updatedAt":"2026-10-06T07:11:37.742Z"}
 
-BOOKING_ID=60
+BOOKING_ID=63
 
 ## 4. Get one booking (expect 200) -> PASS
 
-$ curl -i -X GET "http://localhost:8787/api/bookings/60"
+$ curl -i -X GET "http://localhost:8787/api/bookings/63"
 
 HTTP/1.1 200 OK
 Content-Length: 243
 Content-Type: application/json
 
-{"id":60,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:00:24.060Z","updatedAt":"2026-10-06T07:00:24.060Z"}
+{"id":63,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T09:00:00.000Z","endAt":"2026-10-20T11:00:00.000Z","purpose":"Class presentation","createdAt":"2026-10-06T07:11:37.742Z","updatedAt":"2026-10-06T07:11:37.742Z"}
 
 ## 5. Update a booking (expect 200) -> PASS
 
-$ curl -i -X PATCH "http://localhost:8787/api/bookings/60" \
+$ curl -i -X PATCH "http://localhost:8787/api/bookings/63" \
   -H "Content-Type: application/json" \
   -d '{
     "equipmentId": "eq-1",
@@ -70,7 +70,7 @@ HTTP/1.1 200 OK
 Content-Length: 251
 Content-Type: application/json
 
-{"id":60,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T12:00:00.000Z","endAt":"2026-10-20T14:00:00.000Z","purpose":"Updated class presentation","createdAt":"2026-10-06T07:00:24.060Z","updatedAt":"2026-10-06T07:00:24.094Z"}
+{"id":63,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T12:00:00.000Z","endAt":"2026-10-20T14:00:00.000Z","purpose":"Updated class presentation","createdAt":"2026-10-06T07:11:37.742Z","updatedAt":"2026-10-06T07:11:37.778Z"}
 
 ## 6. Invalid time range (expect 400) -> PASS
 
@@ -120,7 +120,7 @@ Content-Type: application/json
 
 ## 9. Delete a booking (expect 204) -> PASS
 
-$ curl -i -X DELETE "http://localhost:8787/api/bookings/60"
+$ curl -i -X DELETE "http://localhost:8787/api/bookings/63"
 
 HTTP/1.1 204 No Content
 

@@ -29,6 +29,7 @@ This review follows the instructor's `quality_gate.md`. It was used twice: after
 | 7 | **Delivery Quality** | CORS (`Access-Control-Allow-Origin: *`) was enabled, but no browser client is used. The Quality Gate says to include CORS only when using one | Removed the CORS middleware | `evidence/curl-guide-local.txt` headers no longer contain `Access-Control-Allow-Origin` |
 | 8 | **Accuracy** | A POST/PATCH sent **without** `Content-Type: application/json` reported every field as "is required" even though the body had them. That's misleading, and it's easy to hit with curl on Windows | Check the Content-Type first → `400 {"error":"Content-Type must be application/json"}` | See finding 8 below |
 | 9 | **Execution Value** | The submission hadn't yet been tested with the instructor's own cURL guide | Added `scripts/curl-guide.mjs`, which runs guide steps 1–9 with the real `curl` program and saves the raw `curl -i` output | 9/9 steps return the expected status (`evidence/curl-guide-*.txt`) |
+| 10 | **Reliability** | Re-running the cURL guide on the **live** API failed step 5 (**409**, expected 200). Diagnosis: step 2 showed booking 20, left in the guide's fixed slot (eq-1, 2026-10-20 12:00–14:00) by an earlier run that never reached step 9's delete. The API was **correct** to refuse the overlapping update | Deleted the leftover row (only that row) from live D1. The script now keeps going if one `curl` call fails (so step 9 always cleans up), and it warns when leftover data is in the guide's time window | Live run 1: 8/9 (excerpt below). Same failure reproduced locally (8/9 with a leftover → 9/9 after deleting it). Live rerun: `evidence/curl-guide-live.txt` |
 
 ## Details
 
@@ -114,6 +115,26 @@ Each finding is written as **what was found → how it was fixed → evidence**.
 - **Found:** the evidence so far came from a Node `fetch` script. The brief asks for testing with `curl` or another HTTP client, and the instructor supplied a specific cURL guide.
 - **Fixed:** `node scripts/curl-guide.mjs <BASE_URL>` runs guide steps 1–9 exactly as written (same payloads, `BOOKING_ID` taken from step 3, `/bookings/not-found` for 404) using the real `curl` binary. It works on Windows too, because it calls `curl.exe` directly and avoids PowerShell's quoting problems.
 - **Evidence:** 9/9 locally (`evidence/curl-guide-local.txt`). The live run is saved as `evidence/curl-guide-live.txt`.
+
+### 10. Reliability: the cURL guide failed on a re-run because of leftover test data
+
+- **Found:** the first live run of the instructor's guide on the final version gave **8/9**. Excerpt from the raw output:
+  ```
+  ## 2. List bookings (expect 200) -> PASS
+  [{"id":20,"equipmentId":"eq-1","borrowerName":"Somchai Jaidee","startAt":"2026-10-20T12:00:00.000Z","endAt":"2026-10-20T14:00:00.000Z","purpose":"Updated class presentation","createdAt":"2026-10-06T07:07:54.983Z","updatedAt":"2026-10-06T07:07:57.515Z"}]
+  ## 5. Update a booking (expect 200) -> FAIL
+  HTTP/1.1 409 Conflict
+  {"error":"This equipment is already booked for an overlapping time"}
+  ```
+  Booking 20 is exactly what step 5 leaves behind. An earlier run must have stopped before step 9 (`DELETE`). So step 5 of the new run tried to move booking 21 onto booking 20's slot. The API was right to answer 409, and this incidentally shows that the overlap check on **update** works in production. The real risk was different: the instructor running the same guide against the live URL would also have got a 409 at step 5.
+- **Action taken:**
+  1. Deleted exactly that row from the live D1 database (`DELETE … WHERE id = 20 AND …` matching every column).
+  2. `scripts/curl-guide.mjs` now catches a failed `curl` call and carries on, so step 9 always deletes the booking from step 3.
+  3. After step 2 the script prints a warning if any booking already occupies eq-1 on 2026-10-20 09:00–14:00.
+- **Evidence:**
+  - Local reproduction: with a leftover booking, the run gives 8/9 plus the warning. After deleting it, 9/9.
+  - Live database after cleanup: 0 bookings, 3 equipment.
+  - Live rerun: `evidence/curl-guide-live.txt`.
 
 ## Quality Gate checklist: final pass
 
