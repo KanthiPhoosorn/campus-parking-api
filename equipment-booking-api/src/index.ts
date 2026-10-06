@@ -7,7 +7,9 @@ import { z } from 'zod'
 
 type Bindings = { DB: D1Database }
 
-const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
+// root serves "/", app serves everything under "/api" (they share one router)
+const root = new Hono<{ Bindings: Bindings }>({ strict: false }) // "/api/" == "/api"
+const app = root.basePath('/api')
 
 // Only needed for a browser-based client; curl ignores CORS
 app.use('/*', cors())
@@ -87,6 +89,24 @@ async function rejectReason(c: Context<{ Bindings: Bindings }>, equipmentId: str
   }
   return c.json({ error: 'This equipment is already booked for an overlapping time' }, 409)
 }
+
+// ---------- Index: so opening the Base URL in a browser shows what the API offers ----------
+const index = (c: Context) =>
+  c.json({
+    name: 'Campus Equipment Booking API',
+    status: 'ok',
+    baseUrl: '/api',
+    endpoints: [
+      'GET    /api/equipment',
+      'GET    /api/bookings?equipmentId=',
+      'GET    /api/bookings/:id',
+      'POST   /api/bookings',
+      'PATCH  /api/bookings/:id',
+      'DELETE /api/bookings/:id',
+    ],
+  })
+root.get('/', index)
+app.get('/', index)
 
 // ---------- Equipment ----------
 app.get('/equipment', async (c) => {
@@ -176,9 +196,9 @@ app.delete('/bookings/:id', async (c) => {
 })
 
 // ---------- Fallbacks: every error is JSON { "error": "..." } ----------
-app.notFound((c) => c.json({ error: `Route not found: ${c.req.method} ${c.req.path}` }, 404))
+root.notFound((c) => c.json({ error: `Route not found: ${c.req.method} ${c.req.path}` }, 404))
 
-app.onError((err, c) => {
+root.onError((err, c) => {
   // e.g. malformed JSON body -> Hono throws HTTPException(400)
   if (err instanceof HTTPException) {
     return c.json({ error: err.status === 400 ? 'Request body is not valid JSON' : err.message }, err.status)
@@ -191,4 +211,4 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500)
 })
 
-export default app
+export default root
