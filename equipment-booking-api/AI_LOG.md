@@ -16,6 +16,7 @@
 | 6 | Pasted my Windows terminal errors (`'git' is not recognized`, `npm ENOENT`) | Explained that Node.js and Git weren't installed and that I was in the wrong folder. Gave install steps, then a way to download the code as a ZIP without Git | Installed Node.js, downloaded the ZIP, deployed with `npm run deploy` |
 | 7 | Pasted my live test output (28/28) | Checked the Cloudflare D1 database directly (3 equipment, 6 test bookings created and cleaned up). Saved my output as `evidence/v2-live-run.txt` and linked it in the docs | Live evidence is part of the submission |
 | 8 | "Before you submit you do it" | Updated the evidence links and this log | — |
+| 9 | Pasted `{"error":"Route not found: GET /api"}` from opening the Base URL | Added an index response at `/` and `/api` and made a trailing slash work. Checked locally (still 28/28), then checked the deployed code through the Cloudflare connector | Replaced `src/index.ts`, redeployed, and re-ran the live evidence: **28/28** (second run in `evidence/v2-live-run.txt`) |
 
 ## Points where AI output was questioned rather than accepted
 
@@ -29,7 +30,7 @@ These checks were done in the session by running tests, not taken on trust:
 ## What I verified myself
 
 - [ ] Ran `npm run db:local && npm run dev`, then `node scripts/evidence.mjs http://localhost:8787/api`, and got 28/28 passing.
-- [x] Deployed with `npm run deploy` on the lab PC and ran the evidence script against the live URL: **28/28 passed** (`evidence/v2-live-run.txt`).
+- [x] Deployed with `npm run deploy` on the lab PC and ran the evidence script against the live URL: **28/28 passed**, twice: before and after the final index-route change (`evidence/v2-live-run.txt`).
 - [ ] Ran several curl commands by hand (create, overlap → 409, bad dates → 400, delete → 204).
 - [ ] Read `src/index.ts` line by line and can explain:
   - [ ] why the overlap SQL is `start_at < ?end AND end_at > ?start`
