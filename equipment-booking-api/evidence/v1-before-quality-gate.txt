@@ -1,0 +1,30 @@
+PASS  200 (expected 200)  List equipment
+PASS  201 (expected 201)  Create booking
+PASS  200 (expected 200)  List bookings
+PASS  200 (expected 200)  Get one booking
+PASS  200 (expected 200)  Update booking (partial: purpose only)
+FAIL  200 (expected 200)  Update borrowerName only keeps purpose  -- purpose was changed to ""
+FAIL  409 (expected 201)  Back-to-back written without milliseconds (08:00Z-09:00:00Z) is allowed
+PASS  201 (expected 201)  Create back-to-back booking (11:00-12:00, touching is allowed)
+PASS  201 (expected 201)  Same time on OTHER equipment is allowed
+PASS  409 (expected 409)  Overlapping booking on same equipment -> 409
+FAIL  400 (expected 409)  Overlap using +07:00 offset (same instant) -> 409
+PASS  409 (expected 409)  Update that creates an overlap -> 409
+PASS  400 (expected 400)  startAt after endAt -> 400
+PASS  400 (expected 400)  startAt equal to endAt -> 400
+PASS  400 (expected 400)  Missing required fields -> 400
+PASS  400 (expected 400)  Invalid date format -> 400
+PASS  400 (expected 400)  equipmentId does not exist -> 400
+FAIL  201 (expected 400)  Unknown field -> 400
+FAIL  500 (expected 400)  Malformed JSON -> 400
+FAIL  200 (expected 400)  PATCH with empty body -> 400
+PASS  400 (expected 400)  PATCH making startAt >= endAt -> 400
+PASS  404 (expected 404)  Get booking that does not exist -> 404
+PASS  404 (expected 404)  Update booking that does not exist -> 404
+PASS  404 (expected 404)  Delete booking that does not exist -> 404
+PASS  201 (expected 201)  SQL injection text is stored as plain data
+PASS  201,409,409,409,409  concurrent booking race
+PASS  204 (expected 204)  Delete booking -> 204 (no body)
+PASS  404 (expected 404)  Get deleted booking -> 404
+
+22/28 passed -> EVIDENCE.md
