@@ -68,7 +68,7 @@ Times are always returned in UTC (`...Z`). For example, `2026-10-20T16:00:00+07:
 
 | Code | When | Why this code |
 |---|---|---|
-| **400** Bad Request | Missing or invalid field, wrong type, bad date format, `startAt >= endAt`, `equipmentId` doesn't exist, unknown field, malformed JSON, empty PATCH | The **request data** is wrong, so the client must fix the body before retrying. A nonexistent `equipmentId` is a 400, not a 404, because the URL (`/bookings`) is valid; it's a value inside the body that's invalid. |
+| **400** Bad Request | Missing or invalid field, wrong type, bad date format, `startAt >= endAt`, `equipmentId` doesn't exist, unknown field, malformed JSON, empty PATCH, POST/PATCH without `Content-Type: application/json` | The **request data** is wrong, so the client must fix the body before retrying. A nonexistent `equipmentId` is a 400, not a 404, because the URL (`/bookings`) is valid; it's a value inside the body that's invalid. |
 | **404** Not Found | `GET`/`PATCH`/`DELETE /bookings/:id` where the booking doesn't exist (including non-numeric ids such as `abc`); unknown route | The **resource named by the URL** doesn't exist. |
 | **409** Conflict | The equipment already has a booking that overlaps the requested time (on create, and on update) | The data is valid, but it **conflicts with the current state** of the server. The same request could succeed later, for example after the other booking is deleted. |
 | 500 | Unexpected server error | Generic message only; details are logged on the server, never sent to the client. |

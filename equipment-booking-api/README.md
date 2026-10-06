@@ -13,7 +13,7 @@ A REST API for reserving shared faculty equipment (projectors, cameras, meeting 
 | [`EVIDENCE.md`](EVIDENCE.md) | 28 test cases: request (curl), expected vs. actual status, response body. **28/28 pass live** ([`evidence/v2-live-run.txt`](evidence/v2-live-run.txt)) |
 | [`QUALITY_GATE_REVIEW.md`](QUALITY_GATE_REVIEW.md) | Findings → fixes → evidence |
 | [`AI_LOG.md`](AI_LOG.md) | AI prompts, what was used, what was verified |
-| `evidence/` | Raw test output: v1 before the Quality Gate (22/28), v2 after it (28/28 local, 28/28 live) |
+| `evidence/` | Raw test output: v1 before the Quality Gate (22/28), after it (28/28 local, 28/28 live), and the instructor's cURL guide (`curl-guide-*.txt`, 9/9) |
 
 ## Run locally
 
@@ -29,7 +29,8 @@ In a second terminal:
 
 ```bash
 curl http://localhost:8787/api/equipment
-node scripts/evidence.mjs http://localhost:8787/api     # runs all cases, writes EVIDENCE.md
+node scripts/evidence.mjs http://localhost:8787/api     # 28 cases, writes EVIDENCE.md
+node scripts/curl-guide.mjs http://localhost:8787/api   # instructor's cURL guide with real curl -> evidence/curl-guide-local.txt
 ```
 
 ## Deploy to Cloudflare (D1)
@@ -41,6 +42,7 @@ npx wrangler login
 npm run db:remote       # safe to re-run: CREATE TABLE IF NOT EXISTS + INSERT OR IGNORE
 npm run deploy          # prints the live URL
 node scripts/evidence.mjs https://equipment-booking-api.kanthiphs.workers.dev/api
+node scripts/curl-guide.mjs https://equipment-booking-api.kanthiphs.workers.dev/api
 ```
 
 ## Schema / ERD
@@ -78,7 +80,8 @@ Design choices:
 - **Parameter binding everywhere.** Every value goes through `.bind(...)`, and no request data is ever concatenated into SQL. Test case 25 stores `x'); DROP TABLE bookings;--` as plain text.
 - **Strict validation.** Types, lengths and the date format are checked, and unknown fields are rejected, so a client can't set `id` or `createdAt`.
 - **Errors never leak** stack traces or SQL. Unexpected errors return `{ "error": "Internal server error" }` and are logged on the server.
-- **CORS** is enabled (`cors()`) only so a browser-based tester could be used. curl doesn't need it.
+- **No CORS:** no browser client is used, and curl doesn't need it, so the API sends no `Access-Control-Allow-Origin` header (Quality Gate section 7).
+- **Writes must be JSON:** a POST or PATCH without `Content-Type: application/json` gets a clear 400.
 
 ## Project layout
 
@@ -86,5 +89,6 @@ Design choices:
 src/index.ts            all routes, validation, SQL
 schema.sql              tables, constraints, index, seed
 scripts/evidence.mjs    test runner -> EVIDENCE.md
+scripts/curl-guide.mjs  instructor's cURL guide (steps 1-9) with real curl -> evidence/
 wrangler.jsonc          Worker + D1 binding
 ```

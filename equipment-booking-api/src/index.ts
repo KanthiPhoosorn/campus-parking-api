@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
-import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
@@ -11,8 +10,21 @@ type Bindings = { DB: D1Database }
 const root = new Hono<{ Bindings: Bindings }>({ strict: false }) // "/api/" == "/api"
 const app = root.basePath('/api')
 
-// Only needed for a browser-based client; curl ignores CORS
-app.use('/*', cors())
+// No CORS middleware: this API is tested with curl / a Node script, not a browser client.
+
+// Bodies are read as JSON only. Without this check, a POST/PATCH sent without
+// "Content-Type: application/json" looks empty, so every field is reported as "is required".
+const requireJson = async (c: Context, next: () => Promise<void>) => {
+  if (['POST', 'PATCH'].includes(c.req.method)) {
+    const type = c.req.header('content-type') ?? ''
+    if (!type.toLowerCase().startsWith('application/json')) {
+      return c.json({ error: 'Content-Type must be application/json' }, 400)
+    }
+  }
+  await next()
+}
+app.use('/bookings', requireJson)
+app.use('/bookings/*', requireJson)
 
 // ---------- Validation ----------
 
