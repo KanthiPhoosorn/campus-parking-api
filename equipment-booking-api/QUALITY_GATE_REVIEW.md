@@ -6,7 +6,7 @@
 
 | | v1 (before) | v2 (after) |
 |---|---|---|
-| Test cases passing | **22 / 28**, see [`evidence/v1-before-quality-gate.txt`](evidence/v1-before-quality-gate.txt) | **28 / 28**, see [`evidence/v2-after-quality-gate.txt`](evidence/v2-after-quality-gate.txt) |
+| Test cases passing | **22 / 28** locally, see [`evidence/v1-before-quality-gate.txt`](evidence/v1-before-quality-gate.txt) | **28 / 28** locally ([`evidence/v2-after-quality-gate.txt`](evidence/v2-after-quality-gate.txt)) **and live** ([`EVIDENCE.md`](EVIDENCE.md)) |
 | `tsc --noEmit` | 2 type errors | 0 errors |
 
 Each finding is written as **what I found → how I fixed it → evidence**.
@@ -32,7 +32,8 @@ Each finding is written as **what I found → how I fixed it → evidence**.
 - **Found:** v1 ran `SELECT` (is there an overlap?) and then a separate `INSERT`. Two requests arriving at the same moment can both pass the SELECT before either inserts, which creates two overlapping bookings. The same was true for PATCH.
 - **Fixed:** the check and the write are now **one atomic SQL statement**: `INSERT … SELECT … WHERE EXISTS(equipment) AND NOT EXISTS(overlap) RETURNING id`, and the same pattern with `UPDATE … WHERE …` for PATCH. If no row comes back, the API checks why (the equipment is missing → 400, otherwise → 409).
 - **Evidence:** "5 simultaneous requests for the same slot" gives exactly one 201 and four 409 (`201,409,409,409,409`).
-  - *Honest note:* this test also passed on v1 locally, because local D1 runs requests one after another, so the race doesn't show up in local testing. The fix rests on reasoning about the code. The test is a regression check, not proof that v1 failed.
+  - Against the **live** Worker + Cloudflare D1 (`https://equipment-booking-api.kanthiphs.workers.dev/api`), v2 also gave exactly one 201 and four 409, and all 28 cases passed.
+  - *Honest note:* this test also passed on v1 locally, because local D1 runs requests one after another, so the race doesn't show up in local testing. v1 was never deployed live. The fix rests on reasoning about the code. The test is a regression check, not proof that v1 failed.
 
 ### 4. Error handling: malformed JSON returned 500 instead of 400
 
