@@ -6,7 +6,7 @@
 
 | | v1 (before) | v2 (after) |
 |---|---|---|
-| Test cases passing | **22 / 28** locally, see [`evidence/v1-before-quality-gate.txt`](evidence/v1-before-quality-gate.txt) | **28 / 28** locally ([`evidence/v2-after-quality-gate.txt`](evidence/v2-after-quality-gate.txt)) **and live** ([`EVIDENCE.md`](EVIDENCE.md)) |
+| Test cases passing | **22 / 28** locally, see [`evidence/v1-before-quality-gate.txt`](evidence/v1-before-quality-gate.txt) | **28 / 28** locally ([`evidence/v2-after-quality-gate.txt`](evidence/v2-after-quality-gate.txt)) **and live** ([`evidence/v2-live-run.txt`](evidence/v2-live-run.txt)) |
 | `tsc --noEmit` | 2 type errors | 0 errors |
 
 Each finding is written as **what I found → how I fixed it → evidence**.

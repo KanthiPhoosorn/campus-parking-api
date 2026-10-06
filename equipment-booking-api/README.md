@@ -10,10 +10,10 @@ A REST API for reserving shared faculty equipment (projectors, cameras, meeting 
 | Document | Contents |
 |---|---|
 | [`API_CONTRACT.md`](API_CONTRACT.md) | Endpoints, payloads, status codes and the reasons for them, assumptions |
-| [`EVIDENCE.md`](EVIDENCE.md) | 28 test cases: request (curl), expected vs. actual status, response body |
+| [`EVIDENCE.md`](EVIDENCE.md) | 28 test cases: request (curl), expected vs. actual status, response body. **28/28 pass live** ([`evidence/v2-live-run.txt`](evidence/v2-live-run.txt)) |
 | [`QUALITY_GATE_REVIEW.md`](QUALITY_GATE_REVIEW.md) | Findings → fixes → evidence |
 | [`AI_LOG.md`](AI_LOG.md) | AI prompts, what was used, what was verified |
-| `evidence/` | Raw test output before (v1) and after (v2) the Quality Gate |
+| `evidence/` | Raw test output: v1 before the Quality Gate (22/28), v2 after it (28/28 local, 28/28 live) |
 
 ## Run locally
 

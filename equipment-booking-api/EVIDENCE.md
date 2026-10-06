@@ -1,5 +1,10 @@
 # Test Evidence
 
+> **Live result:** the same 28 cases were run against the deployed API
+> `https://equipment-booking-api.kanthiphs.workers.dev/api` and **28/28 passed**. See
+> [`evidence/v2-live-run.txt`](evidence/v2-live-run.txt) for the terminal output.
+> The request/response details below come from the **local** run (`http://localhost:8787/api`), with the same script and code.
+
 - **Base API URL:** `http://localhost:8787/api`
 - **Run at:** 2026-10-06T06:33:08.376Z
 - **Result:** 28/28 cases passed
