@@ -10,8 +10,11 @@
     "enabled": true
   },
   "vars": {
-    "ENVIRONMENT": "development",
-    "AUTH_MODE": "demo",
+    // Production: demo bearer identities are OFF. Human /api/* routes accept only a
+    // verified OIDC JWT and fail closed until AUTH_JWKS_URL/ISSUER/AUDIENCE are set.
+    // Partner (/partner/*, API key) and webhook (/webhooks/*, HMAC) paths are unaffected.
+    "ENVIRONMENT": "production",
+    "AUTH_MODE": "oidc",
     "ENABLE_INSECURE_LAB_DEMO": "false",
     // Partner integration - non-secret configuration. Until the partner team's
     // URL is known these point at external public HTTP services as stand-ins.

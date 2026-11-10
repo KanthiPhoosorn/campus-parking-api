@@ -1,0 +1,25 @@
+
+ RUN  v4.1.11 D:/SE WORK/campus-parking-api
+
+ ✓ test/authz.test.ts > zone ownership authorisation > must reject an operator reading another operator's zone 2ms
+ ✓ test/authz.test.ts > zone ownership authorisation > allows an operator to read their own zone 0ms
+ ✓ test/authz.test.ts > zone ownership authorisation > allows an admin to read any zone 0ms
+ ✓ test/authz.test.ts > zone ownership authorisation > does not let a viewer read private zone records 0ms
+ ✓ test/authz.test.ts > zone write authorisation > must reject an operator writing another operator's zone 0ms
+ ✓ test/authz.test.ts > zone write authorisation > allows the owning operator and an admin to write 0ms
+ ✓ test/authz.test.ts > roles and machine scopes stay separate > does not treat an operator as an admin 0ms
+ ✓ test/authz.test.ts > roles and machine scopes stay separate > does not let a read-only machine credential write 0ms
+ ✓ test/integration.test.ts > webhook signature > accepts a signature produced by signWebhook 7ms
+ ✓ test/integration.test.ts > webhook signature > rejects a tampered body 3ms
+ ✓ test/integration.test.ts > webhook signature > rejects the wrong secret 0ms
+ ✓ test/integration.test.ts > webhook signature > rejects a replay outside the tolerance window 1ms
+ ✓ test/integration.test.ts > webhook signature > rejects a missing or malformed header 0ms
+ ✓ test/integration.test.ts > idempotency fingerprint > is identical for the same body with different key order 0ms
+ ✓ test/integration.test.ts > idempotency fingerprint > differs when any value changes 1ms
+ ✓ test/integration.test.ts > timingSafeEqual > compares correctly 0ms
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  13:20:51
+   Duration  243ms (transform 73ms, setup 0ms, import 108ms, tests 19ms, environment 0ms)
+
